@@ -1,0 +1,15 @@
+# Data — lives on DBFS, never in Git
+data/
+*.zip
+*.csv
+*.txt
+*.npy
+*.joblib
+
+# Python
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Environment
+.env

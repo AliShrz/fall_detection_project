@@ -1,0 +1,81 @@
+data:
+  zip_path: "dbfs:/FileStore/fall_detection/DataSet.zip"
+  base_path_in_zip: "SisFall_dataset"
+  sample_rate: 200
+  signal_length: 400
+  train_subjects:
+    - "SA01"
+    - "SA02"
+    - "SA03"
+    - "SA04"
+    - "SA05"
+    - "SA06"
+    - "SA07"
+    - "SA08"
+    - "SA09"
+    - "SA10"
+    - "SA11"
+    - "SA12"
+    - "SA13"
+    - "SA14"
+    - "SA15"
+    - "SA16"
+    - "SA17"
+    - "SA18"
+    - "SA19"
+    - "SA20"
+    - "SA21"
+    - "SA22"
+    - "SA23"
+    - "SE01"
+    - "SE02"
+    - "SE03"
+    - "SE04"
+    - "SE05"
+    - "SE06"
+    - "SE07"
+    - "SE08"
+    - "SE09"
+    - "SE10"
+    - "SE11"
+    - "SE12"
+    - "SE13"
+  test_subjects:
+    - "SE14"
+    - "SE15"
+
+preprocessing:
+  lowpass:
+    cutoff: 20.0
+    fs: 200
+    order: 4
+  idle_remover:
+    window_size: 50
+    scale: 10
+    mode: "acc"
+  keep_from_peak:
+    window_size: 200
+  length_fix:
+    length: 400
+
+features:
+  window_size: 50
+  step_size: 25
+
+mlflow:
+  experiment_name: "/Users/your_email@example.com/fall_detection"
+
+models:
+  random_forest:
+    n_estimators: 200
+    max_depth: 10
+    random_state: 42
+  xgboost:
+    n_estimators: 200
+    learning_rate: 0.1
+    max_depth: 6
+    random_state: 42
+  svm:
+    kernel: "rbf"
+    C: 10
+    gamma: "scale"
