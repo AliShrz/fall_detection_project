@@ -1,5 +1,5 @@
 data:
-  zip_path: "dbfs:/FileStore/fall_detection/DataSet.zip"
+  zip_path: "/Volumes/workspace/fall_detection_project/raw_data/dataset.zip"
   base_path_in_zip: "SisFall_dataset"
   sample_rate: 200
   signal_length: 400
