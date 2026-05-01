@@ -1,6 +1,6 @@
 data:
   zip_path: "/Volumes/workspace/fall_detection_project/raw_data/dataset.zip"
-  base_path_in_zip: "SisFall_dataset"
+  base_path_in_zip: "DataSet/SisFall_dataset"
   sample_rate: 200
   signal_length: 400
   train_subjects:
