@@ -1,5 +1,6 @@
 data:
   zip_path: "/Volumes/workspace/fall_detection_project/raw_data/dataset.zip"
+  volume_path: "/Volumes/workspace/fall_detection_project/raw_data"
   base_path_in_zip: "DataSet/SisFall_dataset"
   sample_rate: 200
   signal_length: 400
@@ -26,13 +27,13 @@ data:
     - "SA20"
     - "SA21"
     - "SA22"
-    - "SA23"
+    # - "SA23"
     - "SE01"
     - "SE02"
     - "SE03"
     - "SE04"
     - "SE05"
-    - "SE06"
+    # - "SE06"
     - "SE07"
     - "SE08"
     - "SE09"
@@ -40,9 +41,11 @@ data:
     - "SE11"
     - "SE12"
     - "SE13"
-  test_subjects:
     - "SE14"
     - "SE15"
+  test_subjects:
+    - "SA23"
+    - "SE06"
 
 preprocessing:
   lowpass:
