@@ -171,7 +171,13 @@ def split_and_add(input_data, length, file_names):
 
 #########################
 
+def group_by_activity(X, activity_codes, code):
+    """Return list of signals matching a specific activity code."""
+    return [X[i] for i in range(len(X)) if activity_codes[i] == code]
 
+def group_by_prefix(X, activity_codes, prefix):
+    """Return list of signals whose code starts with a prefix (e.g. 'F' for all falls)."""
+    return [X[i] for i in range(len(X)) if activity_codes[i].startswith(prefix)]
 
 
 
