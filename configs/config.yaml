@@ -3,7 +3,7 @@ data:
   volume_path: "/Volumes/workspace/fall_detection_project/raw_data"
   base_path_in_zip: "DataSet/SisFall_dataset"
   sample_rate: 200
-  signal_length: 400
+  signal_length: 800
   train_subjects:
     - "SA01"
     - "SA02"
