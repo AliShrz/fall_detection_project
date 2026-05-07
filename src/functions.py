@@ -142,6 +142,37 @@ def length_fix(data_list, length):
 
 #########################
 
+def split_and_add(input_data, length, file_names):
+    """
+    Splits signals and creates file/activity lists (optimized).
+    """
+    new_data = []
+    new_file_names = []
+    activity_code = file_names[0].split('_')[0]
+
+    for i in range(len(input_data)):
+        file_name = file_names[i]
+        signal = input_data[i]
+        signl_length = signal.shape[1]
+        n = signl_length // length
+        start = 0
+        end = length
+        for _ in range(n):
+            trimmed = signal[:, start:end]
+            new_data.append(trimmed)
+            new_file_names.append(file_name)
+
+    new_activity_code_list = [activity_code] * len(new_data)  # Create new activity code list
+    new_data = np.array(new_data)  # Convert to numpy array
+    print(f"number of new {activity_code} data: {len(new_data)} with shape: {np.shape(new_data)}, "
+          f"file_names :{len(new_file_names)}, activities: {len(new_activity_code_list)} ")
+
+    return new_data, new_file_names, new_activity_code_list
+
+#########################
+
+
+
 
 
 
