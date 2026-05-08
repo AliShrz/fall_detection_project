@@ -60,6 +60,8 @@ preprocessing:
     window_size: 200
   length_fix:
     length: 400
+  excluded_activities:
+    - "D17"  # get in/out car — requires ~1000 samples, incompatible with 800-sample pipeline
 
 features:
   window_size: 50
