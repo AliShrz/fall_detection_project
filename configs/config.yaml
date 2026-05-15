@@ -52,16 +52,168 @@ preprocessing:
     cutoff: 20.0
     fs: 200
     order: 4
-  idle_remover:
-    window_size: 50
-    scale: 10
-    mode: "acc"
-  keep_from_peak:
-    window_size: 200
-  length_fix:
-    length: 400
+
   excluded_activities:
+    - "D14"  # Being on one's back change to lateral position, wait a moment, and change to one's back
     - "D17"  # get in/out car — requires ~1000 samples, incompatible with 800-sample pipeline
+
+  activity_params:
+    # Falls — keep_from_peak + length_fix
+    F:
+      method: "keep_from_peak"
+      window_size: 400
+      target_length: 800
+    # Walking/Jogging — split_and_add
+    D01:
+      method: "split"
+      window_size: 800
+    D02:
+      method: "split"
+      window_size: 800
+    D03:
+      method: "split"
+      window_size: 800
+    D04:
+      method: "split"
+      window_size: 800
+
+    # D11, D18 — keep_from_peak + length_fix
+    D11:
+      method: "keep_from_peak"
+      window_size: 400
+      target_length: 800
+    D18:
+      method: "keep_from_peak"
+      window_size: 400
+      target_length: 800
+
+    D05:
+      method: "idle_remover_split"
+      window_size: 200
+      scale: 30
+      mode: "gyro"
+    D06:
+      method: "idle_remover_split"
+      window_size: 150
+      scale: 30
+      mode: "acc"
+    D07:
+      method: "high_amp"
+      window_size: 100
+      step_size: 100
+      amp_scale: 0.3
+      min_gap: 700
+      before: 200
+      after: 800
+      sensor_type: "gyro"
+    D08:
+      method: "high_amp"
+      window_size: 100
+      step_size: 100
+      amp_scale: 0.14
+      min_gap: 500
+      before: 100
+      after: 500
+      sensor_type: "gyro"
+    D09:
+      method: "high_amp"
+      window_size: 100
+      step_size: 100
+      amp_scale: 0.1
+      min_gap: 700
+      before: 100
+      after: 700
+      sensor_type: "gyro"
+    D10:
+      method: "high_amp"
+      window_size: 100
+      step_size: 100
+      amp_scale: 0.1
+      min_gap: 500
+      before: 100
+      after: 500
+      sensor_type: "gyro"
+    D12:
+      method: "high_amp"
+      window_size: 100
+      step_size: 100
+      amp_scale: 0.2
+      min_gap: 800
+      before: 200
+      after: 800
+      sensor_type: "gyro"
+    D13:
+      method: "high_amp"
+      window_size: 100
+      step_size: 100
+      amp_scale: 0.2
+      min_gap: 500
+      before: 50
+      after: 500
+      sensor_type: "gyro"
+    D15:
+      method: "high_amp"
+      window_size: 250
+      step_size: 250
+      amp_scale: 0.2
+      min_gap: 700
+      before: 200
+      after: 800
+      sensor_type: "gyro"
+    D16:
+      method: "high_amp"
+      window_size: 100
+      step_size: 100
+      amp_scale: 0.15
+      min_gap: 700
+      before: 200
+      after: 800
+      sensor_type: "gyro"
+    D19:
+      method: "high_amp"
+      window_size: 100
+      step_size: 100
+      amp_scale: 0.2
+      min_gap: 400
+      before: 150
+      after: 500
+      sensor_type: "acc"
+
+  activity_groups:
+    D01: "walking"
+    D02: "walking"
+    D03: "jogging"
+    D04: "jogging"
+    D05: "stairs"
+    D06: "stairs"
+    D07:
+      seg1: "sitting"
+      seg2: "standing"
+    D08:
+      seg1: "sitting"
+      seg2: "standing"
+    D09:
+      seg1: "sitting"
+      seg2: "standing"
+    D10:
+      seg1: "sitting"
+      seg2: "standing"
+    D11: "other"
+    D12:
+      seg1: "lying"
+      seg2: "rising"
+    D13:
+      seg1: "lying"
+      seg2: "rising"
+    D15:
+      seg1: "bending"
+      seg2: "straighten"
+    D16:
+      seg1: "bending"
+      seg2: "straighten"
+    D18: "other"
+    D19: "other"
+    F:   "fall"
 
 features:
   window_size: 50
