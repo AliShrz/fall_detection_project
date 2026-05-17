@@ -63,6 +63,7 @@ preprocessing:
       method: "keep_from_peak"
       window_size: 400
       target_length: 800
+
     # Walking/Jogging — split_and_add
     D01:
       method: "split"
@@ -236,3 +237,7 @@ models:
     kernel: "rbf"
     C: 10
     gamma: "scale"
+
+
+
+    

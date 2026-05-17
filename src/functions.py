@@ -271,7 +271,6 @@ def split_and_center(data_list, length):
 
 ##################################################
 
-
 def standard_deviation_magnitude(signal_list, window_size=50, step_size=25):
     """
     Compute Standard Deviation Magnitude feature from a list of 6-row sensor data arrays.
@@ -398,6 +397,147 @@ def extract_from_high_amp_segments(
 
     return list_1, list_2
 
+##################################################
 
+def preprocess_pipeline(X, activity_codes, file_names, cfg):
+    """
+    Apply full preprocessing pipeline to raw signals.
+
+    Parameters
+    ----------
+    X              : np.array (N,) object array of (6, T) signals
+    activity_codes : np.array (N,) activity code per signal
+    file_names     : np.array (N,) file name per signal
+    cfg            : dict loaded from config.yaml
+
+    Returns
+    -------
+    X_processed  : np.ndarray (N, 6, 800)
+    y_binary     : np.ndarray (N,) — "ADL" or "Fall"
+    y_multiclass : np.ndarray (N,) — activity group name
+    """
+    params        = cfg["preprocessing"]["activity_params"]
+    groups        = cfg["preprocessing"]["activity_groups"]
+    excluded      = cfg["preprocessing"]["excluded_activities"]
+    target_length = cfg["data"]["signal_length"]
+
+    all_signals    = []
+    all_binary     = []
+    all_multiclass = []
+
+    # ── Falls ────────────────────────────────────────────────────────────
+    fall_signals_raw = group_by_prefix(list(X), activity_codes, "F")
+    p_fall           = params["F"]
+    fall_peaked      = keep_from_peak(fall_signals_raw, p_fall["window_size"])
+    fall_fixed       = length_fix(fall_peaked, p_fall["target_length"])
+    all_signals.extend(fall_fixed)
+    all_binary.extend(["Fall"] * len(fall_fixed))
+    all_multiclass.extend(["fall"] * len(fall_fixed))
+    print(f"Falls processed: {len(fall_fixed)}")
+
+    # ── ADL activities ────────────────────────────────────────────────────
+    unique_codes = np.unique(activity_codes)
+
+    for code in unique_codes:
+
+        # skip excluded activities
+        if code in excluded:
+            continue
+
+        # skip falls — handled above
+        if code.startswith("F"):
+            continue
+
+        # skip activities not in params
+        if code not in params:
+            continue
+
+        # get signals and file names for this activity
+        signals = group_by_activity(list(X), activity_codes, code)
+        names   = group_by_activity(list(file_names), activity_codes, code)
+        p       = params[code]
+        method  = p["method"]
+        group   = groups[code]
+
+        # ── method: split ─────────────────────────────────────────────
+        if method == "split":
+            new_data, _, _ = split_and_add(signals, p["window_size"], names)
+            all_signals.extend(list(new_data))
+            all_binary.extend(["ADL"] * len(new_data))
+            all_multiclass.extend([group] * len(new_data))
+            print(f"{code} split → {len(new_data)} windows")
+
+        # ── method: keep_from_peak ────────────────────────────────────
+        elif method == "keep_from_peak":
+            peaked = keep_from_peak(signals, p["window_size"])
+            fixed  = length_fix(peaked, p["target_length"])
+            all_signals.extend(fixed)
+            all_binary.extend(["ADL"] * len(fixed))
+            all_multiclass.extend([group] * len(fixed))
+            print(f"{code} keep_from_peak → {len(fixed)} signals")
+
+        # ── method: idle_remover_split ────────────────────────────────
+        elif method == "idle_remover_split":
+            cleaned    = idle_remover(signals, p["window_size"], p["scale"], p["mode"])
+            seg1, seg2 = split_and_center(cleaned, target_length)
+            fixed1     = length_fix(seg1, target_length)
+            fixed2     = length_fix(seg2, target_length)
+
+            if isinstance(group, dict):
+                group_seg1 = group["seg1"]
+                group_seg2 = group["seg2"]
+            else:
+                group_seg1 = group
+                group_seg2 = group
+
+            all_signals.extend(fixed1)
+            all_signals.extend(fixed2)
+            all_binary.extend(["ADL"] * len(fixed1))
+            all_binary.extend(["ADL"] * len(fixed2))
+            all_multiclass.extend([group_seg1] * len(fixed1))
+            all_multiclass.extend([group_seg2] * len(fixed2))
+            print(f"{code} idle+split → seg1:{len(fixed1)} seg2:{len(fixed2)}")
+
+        # ── method: high_amp ──────────────────────────────────────────
+        elif method == "high_amp":
+            seg1, seg2 = extract_from_high_amp_segments(
+                signals,
+                p["window_size"],
+                p["step_size"],
+                p["amp_scale"],
+                p["min_gap"],
+                p["before"],
+                p["after"],
+                p["sensor_type"]
+            )
+            fixed1 = length_fix(seg1, target_length)
+            fixed2 = length_fix(seg2, target_length)
+
+            if isinstance(group, dict):
+                group_seg1 = group["seg1"]
+                group_seg2 = group["seg2"]
+            else:
+                group_seg1 = group
+                group_seg2 = group
+
+            all_signals.extend(fixed1)
+            all_signals.extend(fixed2)
+            all_binary.extend(["ADL"] * len(fixed1))
+            all_binary.extend(["ADL"] * len(fixed2))
+            all_multiclass.extend([group_seg1] * len(fixed1))
+            all_multiclass.extend([group_seg2] * len(fixed2))
+            print(f"{code} high_amp → seg1:{len(fixed1)} seg2:{len(fixed2)}")
+
+    # ── Combine everything ─────────────────────────────────────────────
+    X_processed  = np.array(all_signals)
+    y_binary     = np.array(all_binary)
+    y_multiclass = np.array(all_multiclass)
+
+    print(f"\nPipeline complete ✅")
+    print(f"X_processed  : {X_processed.shape}")
+    print(f"Binary       : {dict(zip(*np.unique(y_binary, return_counts=True)))}")
+    print(f"Multiclass   : {dict(zip(*np.unique(y_multiclass, return_counts=True)))}")
+
+    return X_processed, y_binary, y_multiclass
 
 
