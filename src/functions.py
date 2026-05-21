@@ -3,6 +3,8 @@ import zipfile
 import numpy as np
 import pandas as pd
 
+from scipy.stats import skew, kurtosis, entropy
+from scipy.signal import welch
 
 def read_zip(zip_path: str, base_path_in_zip: str, subject_ids: list):
     """
@@ -539,5 +541,196 @@ def preprocess_pipeline(X, activity_codes, file_names, cfg):
     print(f"Multiclass   : {dict(zip(*np.unique(y_multiclass, return_counts=True)))}")
 
     return X_processed, y_binary, y_multiclass
+
+
+def extract_features(signal, fs=200):
+    """
+    Extract 68 features from a 6-axis IMU signal.
+
+    Parameters
+    ----------
+    signal : np.ndarray shape (6, N)
+             rows 0-2 → accelerometer X, Y, Z
+             rows 3-5 → gyroscope X, Y, Z
+    fs     : sampling frequency in Hz
+
+    Returns
+    -------
+    list of 68 floats
+    """
+    # ── Accelerometer axes ────────────────────────────
+    ax, ay, az = signal[0], signal[1], signal[2]
+
+    # ── Gyroscope axes ────────────────────────────────
+    gx, gy, gz = signal[3], signal[4], signal[5]
+
+    N = signal.shape[1]
+    t = np.arange(N) / fs
+
+    # ── Accelerometer magnitude ───────────────────────
+    acc_mag = np.sqrt(ax**2 + ay**2 + az**2)
+
+    # ── Gyroscope magnitude ───────────────────────────
+    gyro_mag = np.sqrt(gx**2 + gy**2 + gz**2)
+
+    # ══════════════════════════════════════════════════
+    # ACCELEROMETER FEATURES (C1–C33)
+    # ══════════════════════════════════════════════════
+
+    # paste your original 33 features here
+    # but fix axis ordering: ax=signal[0], ay=signal[1], az=signal[2]
+        # Time-domain features
+    C1 = np.sqrt(np.mean(acc_mag**2))  # RMS magnitude
+    C2 = np.sqrt(np.mean(ax**2 + az**2))  # RMS horizontal (X,Z)
+    a_peak_to_peak = np.max(acc_mag) - np.min(acc_mag)
+    C3 = np.sqrt(a_peak_to_peak)
+    C4 = np.mean(np.arctan2(np.sqrt(ax**2 + az**2), -ay))
+    C5 = np.std(np.arctan(np.sqrt(np.mean(ax**2 + az**2)) / np.mean(ay)))
+    C6 = np.mean(ax[:-1]) * np.mean(ax[1:]) if N > 1 else 0
+    jerk = np.diff(ax) / np.diff(t) if N > 1 else np.array([0])
+    C7 = np.mean(np.abs(jerk)) if len(jerk) > 0 else 0
+
+    C8 = np.sqrt(np.std(ax)**2 + np.std(az)**2)
+
+    C9 = np.sqrt(np.std(ax)**2 + np.std(ay)**2 + np.std(az)**2)
+
+    C10 = (np.sum(np.abs(ax)) + np.sum(np.abs(ay)) + np.sum(np.abs(az))) / N
+    C11 = (np.sum(np.abs(ax)) + np.sum(np.abs(az))) / N
+    C12 = np.sum(acc_mag)
+    C13 = np.sum(np.sqrt(ax**2 + az**2))
+    vel_x = np.cumsum(ax) / fs
+    vel_z = np.cumsum(az) / fs
+    C14 = np.sqrt((np.sum(vel_x))**2 + (np.sum(vel_z))**2) / N
+    C15, C16, C17 = np.mean(ax), np.mean(ay), np.mean(az)
+    C18, C19, C20 = np.std(ax), np.std(ay), np.std(az)
+    C21, C22, C23 = skew(ax), skew(ay), skew(az)
+    C24, C25, C26 = kurtosis(ax), kurtosis(ay), kurtosis(az)
+    C27 = np.sum(np.diff(np.sign(acc_mag - np.mean(acc_mag))) != 0)
+    
+    # Frequency-domain features
+    f, Pxx = welch(acc_mag, fs=fs, nperseg=min(256, N))
+    Pxx_norm = Pxx / np.sum(Pxx) if np.sum(Pxx) > 0 else Pxx
+    C28 = entropy(Pxx_norm)
+    C29 = f[np.argmax(Pxx)] if len(f) > 0 else 0
+    C30 = np.sum(Pxx[(f >= 0) & (f <= 5)]) if len(f) > 0 else 0
+
+    # Correlation features
+    C31 = np.corrcoef(ax, ay)[0, 1] if N > 1 else 0
+    C32 = np.corrcoef(ay, az)[0, 1] if N > 1 else 0
+    C33 = np.corrcoef(ax, az)[0, 1] if N > 1 else 0
+
+    # ══════════════════════════════════════════════════
+    # GYROSCOPE FEATURES (G1–G29)
+    # ══════════════════════════════════════════════════
+
+    # G1  — RMS magnitude
+    G1 = np.sqrt(np.mean(gyro_mag**2))  # RMS magnitude
+
+    # G2  — RMS horizontal (X,Z)
+    G2 = np.sqrt(np.mean(gx**2 + gz**2))  # RMS horizontal (X,Z)
+
+    # G3  — peak-to-peak sqrt
+    g_peak_to_peak = np.max(gyro_mag) - np.min(gyro_mag)
+    G3 = np.sqrt(g_peak_to_peak)
+
+    # G6  — autocorrelation X
+    G6 = np.mean(gx[:-1]) * np.mean(gx[1:]) if N > 1 else 0
+
+    # G8  — std magnitude horizontal
+    G8 = np.sqrt(np.std(gx)**2 + np.std(gz)**2)
+
+    # G9  — std magnitude 3D
+    G9 = np.sqrt(np.std(gx)**2 + np.std(gy)**2 + np.std(gz)**2)
+
+    # G10 — mean absolute combined / N
+    G10 = (np.sum(np.abs(gx)) + np.sum(np.abs(gy)) + np.sum(np.abs(gz))) / N
+
+    # G11 — mean absolute horizontal / N
+    G11 = (np.sum(np.abs(gx)) + np.sum(np.abs(gz))) / N
+
+    # G12 — sum magnitude
+    G12 = np.sum(gyro_mag)
+
+    # G13 — sum horizontal magnitude
+    G13 = np.sum(np.sqrt(gx**2 + gz**2))
+
+    # G15 — mean gx, G16 — mean gy, G17 — mean gz
+    G15, G16, G17 = np.mean(gx), np.mean(gy), np.mean(gz)
+
+    # G18 — std gx, # G19 — std gy, # G20 — std gz
+    G18, G19, G20 = np.std(gx), np.std(gy), np.std(gz)
+    
+    # G21 — skewness gx, # G22 — skewness gy, # G23 — skewness gz
+    G21, G22, G23 = skew(gx), skew(gy), skew(gz)
+
+    # G24 — kurtosis gx, # G25 — kurtosis gy, # G26 — kurtosis gz
+    G24, G25, G26 = kurtosis(gx), kurtosis(gy), kurtosis(gz)
+
+    # G27 — zero crossing rate of gyro magnitude
+    G27 = np.sum(np.diff(np.sign(gyro_mag - np.mean(gyro_mag))) != 0)
+
+    # Frequency-domain features
+    f, Pxx_g = welch(gyro_mag, fs=fs, nperseg=min(256, N))
+    Pxx_g_norm = Pxx_g / np.sum(Pxx_g) if np.sum(Pxx_g) > 0 else Pxx_g
+
+    # G28 — spectral entropy of gyro magnitude
+    G28 = entropy(Pxx_g_norm)
+
+    # G29 — dominant frequency of gyro magnitude
+    G29 = f[np.argmax(Pxx_g)] if len(f) > 0 else 0
+
+    # G30 — low frequency energy of gyro magnitude
+    G30 = np.sum(Pxx_g[(f >= 0) & (f <= 5)]) if len(f) > 0 else 0
+
+    # Correlation features
+    # G31 — corr(gx, gy)
+    # G32 — corr(gy, gz)
+    # G33 — corr(gx, gz)
+    G31 = np.corrcoef(gx, gy)[0, 1] if N > 1 else 0
+    G32 = np.corrcoef(gy, gz)[0, 1] if N > 1 else 0
+    G33 = np.corrcoef(gx, gz)[0, 1] if N > 1 else 0
+
+
+    # ══════════════════════════════════════════════════
+    # CROSS-SENSOR FEATURES (X1–X6)
+    # ══════════════════════════════════════════════════
+
+    # X1 — corr(acc_x, gyro_x)
+    X1 = np.corrcoef(ax, gx)[0, 1] if N > 1 else 0
+
+    # X2 — corr(acc_y, gyro_y)
+    X2 = np.corrcoef(ay, gy)[0, 1] if N > 1 else 0
+
+    # X3 — corr(acc_z, gyro_z)
+    X3 = np.corrcoef(az, gz)[0, 1] if N > 1 else 0
+
+    # X4 — corr(acc_mag, gyro_mag)
+    X4 = np.corrcoef(acc_mag, gyro_mag)[0, 1] if N > 1 else 0
+
+    # X5 — corr(acc_x, gyro_z)
+    X5 = np.corrcoef(ax, gz)[0, 1] if N > 1 else 0
+
+    # X6 — corr(acc_z, gyro_x)
+    X6 = np.corrcoef(az, gx)[0, 1] if N > 1 else 0
+
+    return [
+        C1, C2, C3, C4, C5, C6, C7, C8, C9, C10,
+        C11, C12, C13, C14, C15, C16, C17, C18, C19, C20,
+        C21, C22, C23, C24, C25, C26, C27, C28, C29, C30,
+        C31, C32, C33,
+        G1, G2, G3, G6, G8, G9, G10, G11, G12, G13,
+        G15, G16, G17, G18, G19, G20,
+        G21, G22, G23, G24, G25, G26, G27, G28, G29, G30,
+        G31, G32, G33,
+        X1, X2, X3, X4, X5, X6,
+    ]
+
+
+
+
+
+
+
+
 
 
