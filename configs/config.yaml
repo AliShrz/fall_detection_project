@@ -221,7 +221,7 @@ features:
   step_size: 25
 
 mlflow:
-  experiment_name: "/Users/your_email@example.com/fall_detection"
+  experiment_name: "/fall_detection_binary"
 
 models:
   random_forest:
