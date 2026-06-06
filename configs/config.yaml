@@ -221,7 +221,8 @@ features:
   step_size: 25
 
 mlflow:
-  experiment_name: "/fall_detection_binary"
+  experiment_name_binary: "/fall_detection_binary"
+  experiment_name_multiclass: "/fall_detection_multiclass"
 
 models:
   random_forest:
