@@ -542,6 +542,7 @@ def preprocess_pipeline(X, activity_codes, file_names, cfg):
 
     return X_processed, y_binary, y_multiclass
 
+##################################################
 
 def extract_features(signal, fs=200):
     """
@@ -725,7 +726,37 @@ def extract_features(signal, fs=200):
         X1, X2, X3, X4, X5, X6,
     ]
 
+##################################################
 
+def stratified_sample(df, category, frac=0.2, verbose=True):
+    labels           = df[category].unique()
+    total_samples    = df.shape[0]
+    equal_per_cat    = int((total_samples / len(labels)) * frac)
+
+    if verbose:
+        print(f"Total samples     : {total_samples}")
+        print(f"Categories        : {len(labels)}")
+        print(f"Target per category: {equal_per_cat}")
+
+    temp_df = pd.DataFrame()
+
+    for label in labels:
+        cat_df = df[df[category] == label]
+        n      = len(cat_df)
+
+        if n <= equal_per_cat:
+            temp_df = pd.concat([temp_df, cat_df])
+        else:
+            temp_df = pd.concat([temp_df, cat_df.sample(n=equal_per_cat, random_state=42)])
+
+        if verbose:
+            taken = min(n, equal_per_cat)
+            print(f"  {label:<15} total={n:<6} taken={taken}")
+
+    if verbose:
+        print(f"Subset size: {len(temp_df)}")
+
+    return temp_df
 
 
 
